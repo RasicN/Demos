@@ -1,0 +1,11 @@
+
+<div style="min-height: 300px; border: 1px solid black;">
+  <div *ngFor="let message of $messages | async">
+    <span>{{message.message}} - {{message.timestamp.toDate()}}</span>
+  </div>
+</div>
+
+<form [formGroup]="chatForm" (submit)="sendMessage()">
+  <input type="text" placeholder="Type your message" formControlName="message">
+  <button type="submit">Send</button>
+</form>
