@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MassTransit;
+using MassTransit.AzureServiceBusTransport;
 using Newtonsoft.Json;
 using Shared.Messages;
 
@@ -14,7 +15,18 @@ namespace Subscriber2
         static void Main(string[] args)
         {
             Console.WriteLine("Starting up Subscriber2...");
-            var busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
+            var busControl = CreateUsingAzure();
+            busControl.Start();
+            Console.WriteLine("Connected and waiting for messages...");
+
+
+            Console.WriteLine("Press any key to exit.");
+            Console.ReadLine();
+        }
+
+        private static IBusControl CreateUsingRabbitMq()
+        {
+            return Bus.Factory.CreateUsingRabbitMq(cfg =>
             {
                 var host = cfg.Host(new Uri("rabbitmq://rabbitdomain"), h =>
                 {
@@ -29,12 +41,21 @@ namespace Subscriber2
                 });
 
             });
-            busControl.Start();
-            Console.WriteLine("Connected and waiting for messages...");
+        }
 
+        private static IBusControl CreateUsingAzure()
+        {
+            var connectionString = "{ConnectionString}"; // Must have manage permissions
+            return Bus.Factory.CreateUsingAzureServiceBus(cfg =>
+            {
+                var host = cfg.Host(connectionString, x => { });
 
-            Console.WriteLine("Press any key to exit.");
-            Console.ReadLine();
+                cfg.ReceiveEndpoint(host, "demosubscriber2", ep =>
+                {
+                    ep.EnablePartitioning = false;
+                    ep.Consumer<OrderSubmittedConsumer>();
+                });
+            });
         }
     }
     internal class OrderSubmittedConsumer : IConsumer<OrderSubmitted>

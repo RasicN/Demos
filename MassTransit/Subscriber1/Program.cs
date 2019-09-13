@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using MassTransit;
+using MassTransit.AzureServiceBusTransport;
 using Newtonsoft.Json;
 using Shared.Messages;
 
@@ -11,7 +12,18 @@ namespace Subscriber1
         static void Main(string[] args)
         {
             Console.WriteLine("Starting up Subscriber1...");
-            var busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
+            var busControl = CreateUsingAzure();
+            busControl.Start();
+            Console.WriteLine("Connected and waiting for messages...");
+
+
+            Console.WriteLine("Press any key to exit.");
+            Console.ReadLine();
+        }
+
+        private static IBusControl CreateUsingRabbitMq()
+        {
+            return Bus.Factory.CreateUsingRabbitMq(cfg =>
             {
                 var host = cfg.Host(new Uri("rabbitmq://rabbitdomain"), h =>
                 {
@@ -26,12 +38,22 @@ namespace Subscriber1
                 });
 
             });
-            busControl.Start();
-            Console.WriteLine("Connected and waiting for messages...");
+        }
 
+        private static IBusControl CreateUsingAzure()
+        {
+            var connectionString =
+                "Endpoint=sb://jcisar-demo.servicebus.windows.net/;SharedAccessKeyName=MassTransitDemo;SharedAccessKey=vv+SqNAH+xHIBLnjoFATmcqhuy14WHSY3inCvJUoBJ4=";
+            return Bus.Factory.CreateUsingAzureServiceBus(cfg =>
+            {
+                var host = cfg.Host(connectionString, x => { });
 
-            Console.WriteLine("Press any key to exit.");
-            Console.ReadLine();
+                cfg.ReceiveEndpoint(host, "demosubscriber1", ep =>
+                {
+                    ep.EnablePartitioning = false;
+                    ep.Consumer<OrderSubmittedConsumer>();
+                });
+            });
         }
     }
 

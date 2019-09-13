@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using MassTransit;
+using MassTransit.AzureServiceBusTransport;
 using Shared.Messages;
 using Shared.Messages.Models;
 
@@ -12,20 +13,7 @@ namespace Publisher
         {
             // establish connection
             Console.WriteLine("Starting up...");
-            var busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
-            {
-                var host = cfg.Host(new Uri("rabbitmq://rabbitdomain"), h =>
-                {
-                    h.Username("username");
-                    h.Password("password");
-                });
-
-                cfg.ReceiveEndpoint(host, "demopublisher", ep =>
-                {
-                    ep.Durable = true;
-                    ep.Consumer<OrderProcessedConsumer>();
-                });
-            });
+            var busControl = CreateUsingAzure();// CreateUsingRabbitMq();
             busControl.Start();
             Console.WriteLine("Connected and waiting for messages...");
             Console.WriteLine("Press key 1 to send a message, 2 to publish a message.");
@@ -60,9 +48,43 @@ namespace Publisher
                 }
                 input = Console.ReadLine();
             }
-            
+
             Console.WriteLine("Press any key to exit.");
             Console.ReadLine();
+        }
+
+        private static IBusControl CreateUsingRabbitMq()
+        {
+            return Bus.Factory.CreateUsingRabbitMq(cfg =>
+            {
+                var host = cfg.Host(new Uri("rabbitmq://rabbitdomain"), h =>
+                {
+                    h.Username("username");
+                    h.Password("password");
+                });
+
+                cfg.ReceiveEndpoint(host, "demopublisher", ep =>
+                {
+                    ep.Durable = true;
+                    ep.Consumer<OrderProcessedConsumer>();
+                });
+            });
+        }
+
+        private static IBusControl CreateUsingAzure()
+        {
+            var connectionString =
+                "Endpoint=sb://jcisar-demo.servicebus.windows.net/;SharedAccessKeyName=MassTransitDemo;SharedAccessKey=vv+SqNAH+xHIBLnjoFATmcqhuy14WHSY3inCvJUoBJ4=";
+            return Bus.Factory.CreateUsingAzureServiceBus(cfg =>
+            {
+                var host = cfg.Host(connectionString, x => { });
+                
+                cfg.ReceiveEndpoint(host, "demopublisher", ep =>
+                {
+                    ep.EnablePartitioning = false;
+                    ep.Consumer<OrderProcessedConsumer>();
+                });
+            });
         }
     }
 
