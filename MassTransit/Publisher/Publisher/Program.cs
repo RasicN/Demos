@@ -73,12 +73,11 @@ namespace Publisher
 
         private static IBusControl CreateUsingAzure()
         {
-            var connectionString =
-                "Endpoint=sb://jcisar-demo.servicebus.windows.net/;SharedAccessKeyName=MassTransitDemo;SharedAccessKey=vv+SqNAH+xHIBLnjoFATmcqhuy14WHSY3inCvJUoBJ4=";
+            var connectionString = "{ConnectionString}"; // Must have manage permissions
             return Bus.Factory.CreateUsingAzureServiceBus(cfg =>
             {
                 var host = cfg.Host(connectionString, x => { });
-                
+
                 cfg.ReceiveEndpoint(host, "demopublisher", ep =>
                 {
                     ep.EnablePartitioning = false;
